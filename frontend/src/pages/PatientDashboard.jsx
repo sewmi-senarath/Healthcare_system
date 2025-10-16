@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -10,10 +10,47 @@ import {
   UserIcon,
   HeartIcon
 } from '@heroicons/react/24/outline';
+import patientAPI from '../utils/patientAPI';
 
 const PatientDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [dashboardStats, setDashboardStats] = useState({
+    upcomingAppointments: 0,
+    medicalRecords: 0,
+    activePrescriptions: 0,
+    unreadNotifications: 0
+  });
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load dashboard data on component mount
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      try {
+        setLoading(true);
+        
+        // Load dashboard statistics
+        const statsResult = await patientAPI.getDashboardStats();
+        if (statsResult.success) {
+          setDashboardStats(statsResult.stats);
+        }
+
+        // Load recent activity
+        const activityResult = await patientAPI.getRecentActivity();
+        if (activityResult.success) {
+          setRecentActivity(activityResult.activities);
+        }
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+        toast.error('Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboardData();
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -23,11 +60,11 @@ const PatientDashboard = () => {
 
   const dashboardCards = [
     {
-      title: 'Appointments',
-      description: 'Book and manage your appointments',
+      title: 'Book Appointment',
+      description: 'Book a new appointment with a doctor',
       icon: CalendarIcon,
       color: 'bg-blue-500',
-      href: '/patient/appointments'
+      href: '/patient/book-appointment'
     },
     {
       title: 'Medical Records',
@@ -105,7 +142,9 @@ const PatientDashboard = () => {
             <div className="flex items-center">
               <CalendarIcon className="w-8 h-8 text-blue-600" />
               <div className="ml-4">
-                <p className="text-2xl font-bold text-gray-900">3</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {loading ? '...' : dashboardStats.upcomingAppointments}
+                </p>
                 <p className="text-gray-600">Upcoming Appointments</p>
               </div>
             </div>
@@ -114,7 +153,9 @@ const PatientDashboard = () => {
             <div className="flex items-center">
               <DocumentTextIcon className="w-8 h-8 text-green-600" />
               <div className="ml-4">
-                <p className="text-2xl font-bold text-gray-900">12</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {loading ? '...' : dashboardStats.medicalRecords}
+                </p>
                 <p className="text-gray-600">Medical Records</p>
               </div>
             </div>
@@ -123,7 +164,9 @@ const PatientDashboard = () => {
             <div className="flex items-center">
               <HeartIcon className="w-8 h-8 text-purple-600" />
               <div className="ml-4">
-                <p className="text-2xl font-bold text-gray-900">5</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {loading ? '...' : dashboardStats.activePrescriptions}
+                </p>
                 <p className="text-gray-600">Active Prescriptions</p>
               </div>
             </div>
@@ -132,7 +175,9 @@ const PatientDashboard = () => {
             <div className="flex items-center">
               <BellIcon className="w-8 h-8 text-red-600" />
               <div className="ml-4">
-                <p className="text-2xl font-bold text-gray-900">2</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {loading ? '...' : dashboardStats.unreadNotifications}
+                </p>
                 <p className="text-gray-600">New Notifications</p>
               </div>
             </div>
@@ -148,8 +193,7 @@ const PatientDashboard = () => {
                 key={index}
                 className="bg-white rounded-lg p-6 shadow-sm border hover:shadow-md transition-shadow cursor-pointer"
                 onClick={() => {
-                  // In a real app, you would use React Router navigation here
-                  console.log(`Navigate to ${card.href}`);
+                  navigate(card.href);
                 }}
               >
                 <div className="flex items-center mb-4">
@@ -174,29 +218,36 @@ const PatientDashboard = () => {
             <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
           </div>
           <div className="p-6">
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <CalendarIcon className="w-5 h-5 text-blue-600" />
-                <div>
-                  <p className="text-gray-900">Appointment scheduled with Dr. Smith</p>
-                  <p className="text-sm text-gray-500">2 hours ago</p>
-                </div>
+            {loading ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               </div>
-              <div className="flex items-center space-x-3">
-                <HeartIcon className="w-5 h-5 text-purple-600" />
-                <div>
-                  <p className="text-gray-900">New prescription received</p>
-                  <p className="text-sm text-gray-500">1 day ago</p>
-                </div>
+            ) : recentActivity.length > 0 ? (
+              <div className="space-y-4">
+                {recentActivity.map((activity, index) => {
+                  const IconComponent = activity.icon === 'CalendarIcon' ? CalendarIcon : 
+                                       activity.icon === 'HeartIcon' ? HeartIcon : 
+                                       activity.icon === 'BellIcon' ? BellIcon : BellIcon;
+                  
+                  return (
+                    <div key={index} className="flex items-center space-x-3">
+                      <IconComponent className="w-5 h-5 text-blue-600" />
+                      <div>
+                        <p className="text-gray-900">{activity.title}</p>
+                        <p className="text-sm text-gray-500">{activity.description}</p>
+                        <p className="text-xs text-gray-400">
+                          {new Date(activity.date).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <div className="flex items-center space-x-3">
-                <BellIcon className="w-5 h-5 text-red-600" />
-                <div>
-                  <p className="text-gray-900">Appointment reminder for tomorrow</p>
-                  <p className="text-sm text-gray-500">2 days ago</p>
-                </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-500">No recent activity</p>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </main>

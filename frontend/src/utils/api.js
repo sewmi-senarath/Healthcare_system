@@ -40,7 +40,7 @@ api.interceptors.response.use(
         const refreshToken = localStorage.getItem('refreshToken');
         if (refreshToken) {
           const response = await axios.post(
-            `${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/auth/refresh`,
+            `${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/auth/refresh-token`,
             { refreshToken }
           );
 
@@ -119,7 +119,7 @@ export const authAPI = {
 
   // Refresh token
   refreshToken: async (refreshToken) => {
-    return api.post('/auth/refresh', { refreshToken });
+    return api.post('/auth/refresh-token', { refreshToken });
   }
 };
 

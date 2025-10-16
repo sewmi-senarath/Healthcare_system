@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
+import authorityAPI from '../utils/authorityAPI';
 import { 
   CalendarIcon, 
   DocumentTextIcon, 
@@ -13,12 +14,55 @@ import {
   ShieldCheckIcon,
   HeartIcon,
   BeakerIcon,
-  ClipboardDocumentListIcon
+  ClipboardDocumentListIcon,
+  ClockIcon,
+  CheckCircleIcon
 } from '@heroicons/react/24/outline';
 
 const AuthorityDashboard = () => {
   const { user, userType, logout } = useAuth();
   const navigate = useNavigate();
+  const [dashboardStats, setDashboardStats] = useState({});
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load dashboard data on component mount
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      try {
+        setLoading(true);
+        
+        // Load dashboard statistics
+        const statsResult = await authorityAPI.getDashboardStats(userType, user._id);
+        if (statsResult.success) {
+          setDashboardStats(statsResult.stats);
+        } else {
+          console.log('No dashboard stats found, using defaults');
+          setDashboardStats({});
+        }
+
+        // Load recent activity
+        const activityResult = await authorityAPI.getRecentActivity(userType, user._id);
+        if (activityResult.success) {
+          setRecentActivity(activityResult.activities || []);
+        } else {
+          console.log('No recent activity found, using empty array');
+          setRecentActivity([]);
+        }
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+        // Don't show error toast, just use default values
+        setDashboardStats({});
+        setRecentActivity([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user && userType) {
+      loadDashboardData();
+    }
+  }, [user, userType]);
 
   const handleLogout = async () => {
     await logout();
@@ -125,6 +169,13 @@ const AuthorityDashboard = () => {
       case 'nurse':
         return [
           {
+            title: 'Appointments',
+            description: 'View patient appointments',
+            icon: CalendarIcon,
+            color: 'bg-blue-500',
+            href: '/authority/appointments'
+          },
+          {
             title: 'Patients',
             description: 'Manage patient care',
             icon: HeartIcon,
@@ -135,7 +186,7 @@ const AuthorityDashboard = () => {
             title: 'Medical Records',
             description: 'Update patient information',
             icon: DocumentTextIcon,
-            color: 'bg-blue-500',
+            color: 'bg-green-500',
             href: '/authority/medical-records'
           },
           ...commonCards
@@ -222,31 +273,42 @@ const AuthorityDashboard = () => {
     switch (type) {
       case 'doctor':
         return [
-          { label: 'Today\'s Appointments', value: '8', icon: CalendarIcon, color: 'text-blue-600' },
-          { label: 'Active Patients', value: '45', icon: UserIcon, color: 'text-green-600' },
-          { label: 'Pending Prescriptions', value: '12', icon: DocumentTextIcon, color: 'text-purple-600' },
-          { label: 'Notifications', value: '3', icon: BellIcon, color: 'text-red-600' }
+          { label: 'Today\'s Appointments', value: loading ? '...' : (dashboardStats.todaysAppointments || 0), icon: CalendarIcon, color: 'text-blue-600' },
+          { label: 'Total Appointments', value: loading ? '...' : (dashboardStats.totalAppointments || 0), icon: CalendarIcon, color: 'text-indigo-600' },
+          { label: 'Pending Approval', value: loading ? '...' : (dashboardStats.pendingApprovalAppointments || 0), icon: ClockIcon, color: 'text-orange-600' },
+          { label: 'Upcoming (7 days)', value: loading ? '...' : (dashboardStats.upcomingAppointments || 0), icon: CalendarIcon, color: 'text-green-600' },
+          { label: 'Completed', value: loading ? '...' : (dashboardStats.completedAppointments || 0), icon: CheckCircleIcon, color: 'text-green-600' },
+          { label: 'Active Patients', value: loading ? '...' : (dashboardStats.activePatients || 0), icon: UserIcon, color: 'text-purple-600' },
+          { label: 'Pending Prescriptions', value: loading ? '...' : (dashboardStats.pendingPrescriptions || 0), icon: DocumentTextIcon, color: 'text-yellow-600' },
+          { label: 'Notifications', value: loading ? '...' : (dashboardStats.unreadNotifications || 0), icon: BellIcon, color: 'text-red-600' }
         ];
       case 'pharmacist':
         return [
-          { label: 'Low Stock Items', value: '5', icon: BeakerIcon, color: 'text-red-600' },
-          { label: 'Pending Prescriptions', value: '18', icon: DocumentTextIcon, color: 'text-purple-600' },
-          { label: 'Total Medicines', value: '156', icon: BeakerIcon, color: 'text-green-600' },
-          { label: 'Notifications', value: '2', icon: BellIcon, color: 'text-red-600' }
+          { label: 'Low Stock Items', value: loading ? '...' : (dashboardStats.lowStockMedicines || 0), icon: BeakerIcon, color: 'text-red-600' },
+          { label: 'Pending Prescriptions', value: loading ? '...' : (dashboardStats.pendingPrescriptions || 0), icon: DocumentTextIcon, color: 'text-purple-600' },
+          { label: 'Total Medicines', value: loading ? '...' : (dashboardStats.totalMedicines || 0), icon: BeakerIcon, color: 'text-green-600' },
+          { label: 'Notifications', value: loading ? '...' : (dashboardStats.unreadNotifications || 0), icon: BellIcon, color: 'text-red-600' }
+        ];
+      case 'nurse':
+        return [
+          { label: 'Today\'s Appointments', value: loading ? '...' : (dashboardStats.todaysAppointments || 0), icon: CalendarIcon, color: 'text-blue-600' },
+          { label: 'Total Appointments', value: loading ? '...' : (dashboardStats.totalAppointments || 0), icon: CalendarIcon, color: 'text-indigo-600' },
+          { label: 'Assigned Patients', value: loading ? '...' : (dashboardStats.assignedPatients || 0), icon: HeartIcon, color: 'text-pink-600' },
+          { label: 'Notifications', value: loading ? '...' : (dashboardStats.unreadNotifications || 0), icon: BellIcon, color: 'text-red-600' }
         ];
       case 'healthCareManager':
         return [
-          { label: 'Pending Approvals', value: '7', icon: CalendarIcon, color: 'text-orange-600' },
-          { label: 'Active Tickets', value: '12', icon: TicketIcon, color: 'text-red-600' },
-          { label: 'Total Staff', value: '89', icon: UserIcon, color: 'text-green-600' },
-          { label: 'Notifications', value: '5', icon: BellIcon, color: 'text-red-600' }
+          { label: 'Pending Approvals', value: loading ? '...' : (dashboardStats.pendingApprovals || 0), icon: CalendarIcon, color: 'text-orange-600' },
+          { label: 'Active Tickets', value: loading ? '...' : (dashboardStats.activeTickets || 0), icon: TicketIcon, color: 'text-red-600' },
+          { label: 'Total Staff', value: loading ? '...' : (dashboardStats.totalStaff || 0), icon: UserIcon, color: 'text-green-600' },
+          { label: 'Notifications', value: loading ? '...' : (dashboardStats.unreadNotifications || 0), icon: BellIcon, color: 'text-red-600' }
         ];
       default:
         return [
-          { label: 'Active Users', value: '156', icon: UserIcon, color: 'text-blue-600' },
-          { label: 'Today\'s Activity', value: '234', icon: ChartBarIcon, color: 'text-green-600' },
-          { label: 'System Health', value: '99%', icon: ShieldCheckIcon, color: 'text-green-600' },
-          { label: 'Notifications', value: '1', icon: BellIcon, color: 'text-red-600' }
+          { label: 'Active Users', value: loading ? '...' : (dashboardStats.activeUsers || 0), icon: UserIcon, color: 'text-blue-600' },
+          { label: 'Today\'s Activity', value: loading ? '...' : (dashboardStats.todaysActivity || 0), icon: ChartBarIcon, color: 'text-green-600' },
+          { label: 'System Health', value: loading ? '...' : (dashboardStats.systemHealth || '99%'), icon: ShieldCheckIcon, color: 'text-green-600' },
+          { label: 'Notifications', value: loading ? '...' : (dashboardStats.unreadNotifications || 0), icon: BellIcon, color: 'text-red-600' }
         ];
     }
   };
@@ -254,6 +316,12 @@ const AuthorityDashboard = () => {
   const RoleIcon = getRoleIcon(userType);
   const dashboardCards = getDashboardCards(userType);
   const quickStats = getQuickStats(userType);
+
+  const handleCardClick = (card) => {
+    if (card.href) {
+      navigate(card.href);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -292,21 +360,24 @@ const AuthorityDashboard = () => {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          {quickStats.map((stat, index) => {
-            const IconComponent = stat.icon;
-            return (
-              <div key={index} className="bg-white rounded-lg p-6 shadow-sm border">
-                <div className="flex items-center">
-                  <IconComponent className={`w-8 h-8 ${stat.color}`} />
-                  <div className="ml-4">
-                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                    <p className="text-gray-600">{stat.label}</p>
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Dashboard Overview</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {quickStats.map((stat, index) => {
+              const IconComponent = stat.icon;
+              return (
+                <div key={index} className="bg-white rounded-lg p-6 shadow-sm border">
+                  <div className="flex items-center">
+                    <IconComponent className={`w-8 h-8 ${stat.color}`} />
+                    <div className="ml-4">
+                      <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                      <p className="text-gray-600">{stat.label}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
 
         {/* Dashboard Cards */}
@@ -317,10 +388,7 @@ const AuthorityDashboard = () => {
               <div
                 key={index}
                 className="bg-white rounded-lg p-6 shadow-sm border hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => {
-                  // In a real app, you would use React Router navigation here
-                  console.log(`Navigate to ${card.href}`);
-                }}
+                onClick={() => handleCardClick(card)}
               >
                 <div className="flex items-center mb-4">
                   <div className={`${card.color} p-3 rounded-lg`}>
@@ -344,69 +412,47 @@ const AuthorityDashboard = () => {
             <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
           </div>
           <div className="p-6">
-            <div className="space-y-4">
-              {userType === 'doctor' && (
-                <>
-                  <div className="flex items-center space-x-3">
-                    <CalendarIcon className="w-5 h-5 text-blue-600" />
-                    <div>
-                      <p className="text-gray-900">Completed appointment with John Doe</p>
-                      <p className="text-sm text-gray-500">1 hour ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <DocumentTextIcon className="w-5 h-5 text-purple-600" />
-                    <div>
-                      <p className="text-gray-900">Created new prescription</p>
-                      <p className="text-sm text-gray-500">2 hours ago</p>
-                    </div>
-                  </div>
-                </>
-              )}
-              {userType === 'pharmacist' && (
-                <>
-                  <div className="flex items-center space-x-3">
-                    <DocumentTextIcon className="w-5 h-5 text-purple-600" />
-                    <div>
-                      <p className="text-gray-900">Dispensed prescription #PRES123</p>
-                      <p className="text-sm text-gray-500">30 minutes ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <BeakerIcon className="w-5 h-5 text-green-600" />
-                    <div>
-                      <p className="text-gray-900">Updated medicine stock levels</p>
-                      <p className="text-sm text-gray-500">1 hour ago</p>
-                    </div>
-                  </div>
-                </>
-              )}
-              {userType === 'healthCareManager' && (
-                <>
-                  <div className="flex items-center space-x-3">
-                    <CalendarIcon className="w-5 h-5 text-blue-600" />
-                    <div>
-                      <p className="text-gray-900">Approved 5 pending appointments</p>
-                      <p className="text-sm text-gray-500">2 hours ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <TicketIcon className="w-5 h-5 text-orange-600" />
-                    <div>
-                      <p className="text-gray-900">Resolved support ticket #TICKET456</p>
-                      <p className="text-sm text-gray-500">3 hours ago</p>
-                    </div>
-                  </div>
-                </>
-              )}
-              <div className="flex items-center space-x-3">
-                <BellIcon className="w-5 h-5 text-red-600" />
-                <div>
-                  <p className="text-gray-900">System notification received</p>
-                  <p className="text-sm text-gray-500">4 hours ago</p>
-                </div>
+            {loading ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               </div>
-            </div>
+            ) : recentActivity.length > 0 ? (
+              <div className="space-y-4">
+                {recentActivity.map((activity, index) => {
+                  const IconComponent = activity.icon === 'CalendarIcon' ? CalendarIcon : 
+                                       activity.icon === 'DocumentTextIcon' ? DocumentTextIcon : 
+                                       activity.icon === 'TicketIcon' ? TicketIcon : 
+                                       activity.icon === 'BellIcon' ? BellIcon : 
+                                       activity.icon === 'BeakerIcon' ? BeakerIcon : BellIcon;
+                  
+                  return (
+                    <div key={index} className="flex items-center space-x-3">
+                      <IconComponent className="w-5 h-5 text-blue-600" />
+                      <div>
+                        <p className="text-gray-900">{activity.title}</p>
+                        <p className="text-sm text-gray-500">{activity.description}</p>
+                        <p className="text-xs text-gray-400">
+                          {new Date(activity.date).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <CalendarIcon className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-500 mb-2">No recent activity</p>
+                <p className="text-sm text-gray-400">
+                  {userType === 'doctor' 
+                    ? 'Your recent appointments and prescriptions will appear here.'
+                    : userType === 'healthCareManager'
+                    ? 'Your recent approvals and support tickets will appear here.'
+                    : 'Your recent activities will appear here.'
+                  }
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </main>
