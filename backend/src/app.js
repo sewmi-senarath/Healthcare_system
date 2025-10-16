@@ -8,6 +8,7 @@ import patientRoutes from "./routes/patientRoutes.js";
 import employeeRoutes from "./routes/employeeRoutes.js";
 import appointmentRoutes from "./routes/appointmentRoutes.js";
 import supportTicketRoutes from "./routes/supportTicketRoutes.js";
+import prescriptionRoutes from "./routes/prescriptionRoutes.js";
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use('/api/patient', patientRoutes);
 app.use('/api/employee', employeeRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/support-tickets', supportTicketRoutes);
+app.use('/api/prescriptions', prescriptionRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {

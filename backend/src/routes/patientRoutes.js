@@ -524,4 +524,26 @@ router.get('/medical-records', authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/patient/search/:patientId
+ * Search patient by ID (for nurses and staff)
+ */
+router.get('/search/:patientId', authenticateToken, async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    const result = await PatientController.searchPatientById(patientId);
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(404).json(result);
+    }
+  } catch (error) {
+    console.error('Search patient error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
 export default router;

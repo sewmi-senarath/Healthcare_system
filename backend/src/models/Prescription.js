@@ -135,7 +135,7 @@ const prescriptionSchema = new mongoose.Schema({
   history: [{
     action: {
       type: String,
-      enum: ['created', 'sent_to_pharmacy', 'dispensed', 'refilled', 'cancelled', 'modified'],
+      enum: ['created', 'sent_to_pharmacy', 'dispensed', 'refilled', 'cancelled', 'modified', 'completed'],
       required: true
     },
     performedBy: String,

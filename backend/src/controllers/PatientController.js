@@ -636,6 +636,47 @@ class PatientController {
       throw error;
     }
   }
+
+  /**
+   * Search patient by ID (for nurses and staff)
+   */
+  static async searchPatientById(patientId) {
+    try {
+      console.log(`Searching for patient with ID: ${patientId}`);
+      
+      const patient = await Patient.findOne({ patientId: patientId });
+      
+      if (!patient) {
+        return {
+          success: false,
+          message: 'Patient not found'
+        };
+      }
+
+      return {
+        success: true,
+        patient: {
+          patientId: patient.patientId,
+          name: patient.name,
+          email: patient.email,
+          phone: patient.phone,
+          dateOfBirth: patient.dateOfBirth,
+          gender: patient.gender,
+          address: patient.address,
+          emergencyContact: patient.emergencyContact,
+          medicalHistory: patient.medicalHistory,
+          allergies: patient.allergies,
+          currentMedications: patient.currentMedications,
+          insuranceInfo: patient.insuranceInfo,
+          isActive: patient.isActive,
+          createdAt: patient.createdAt
+        }
+      };
+    } catch (error) {
+      console.error('Search patient by ID error:', error);
+      throw error;
+    }
+  }
 }
 
 export default PatientController;
