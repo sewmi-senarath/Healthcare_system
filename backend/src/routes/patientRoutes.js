@@ -398,4 +398,130 @@ router.get('/:patientId', authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/patient/dashboard/stats
+ * Get patient dashboard statistics
+ */
+router.get('/dashboard/stats', authenticateToken, async (req, res) => {
+  try {
+    const result = await PatientController.getDashboardStats(req.user._id);
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(404).json(result);
+    }
+  } catch (error) {
+    console.error('Get dashboard stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+/**
+ * GET /api/patient/dashboard/recent-activity
+ * Get patient recent activity
+ */
+router.get('/dashboard/recent-activity', authenticateToken, async (req, res) => {
+  try {
+    const result = await PatientController.getRecentActivity(req.user._id);
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(404).json(result);
+    }
+  } catch (error) {
+    console.error('Get recent activity error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+/**
+ * GET /api/patient/appointments
+ * Get patient appointments
+ */
+router.get('/appointments', authenticateToken, async (req, res) => {
+  try {
+    const result = await PatientController.getPatientAppointments(req.user._id);
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(404).json(result);
+    }
+  } catch (error) {
+    console.error('Get patient appointments error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+/**
+ * GET /api/patient/notifications
+ * Get patient notifications
+ */
+router.get('/notifications', authenticateToken, async (req, res) => {
+  try {
+    const result = await PatientController.getPatientNotifications(req.user._id);
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(404).json(result);
+    }
+  } catch (error) {
+    console.error('Get patient notifications error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+/**
+ * PUT /api/patient/profile
+ * Update patient profile
+ */
+router.put('/profile', authenticateToken, async (req, res) => {
+  try {
+    const result = await PatientController.updatePatientProfile(req.user._id, req.body);
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    console.error('Update patient profile error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+/**
+ * GET /api/patient/medical-records
+ * Get patient medical records
+ */
+router.get('/medical-records', authenticateToken, async (req, res) => {
+  try {
+    const result = await PatientController.getPatientMedicalRecords(req.user._id);
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(404).json(result);
+    }
+  } catch (error) {
+    console.error('Get patient medical records error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
 export default router;

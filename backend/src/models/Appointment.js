@@ -27,7 +27,7 @@ const appointmentSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending_approval', 'approved', 'confirmed', 'in_progress', 'completed', 'cancelled', 'declined', 'no_show'],
+    enum: ['pending_approval', 'approved', 'confirmed', 'in_progress', 'completed', 'cancelled', 'declined', 'no_show', 'reserved', 'pending_payment', 'expired'],
     default: 'pending_approval'
   },
   reasonForVisit: {
@@ -35,6 +35,23 @@ const appointmentSchema = new mongoose.Schema({
     required: true,
     trim: true,
     maxlength: 500
+  },
+  consultationFee: {
+    type: Number,
+    min: 0
+  },
+  paymentMethod: {
+    type: String,
+    enum: ['cash', 'card', 'insurance', 'pending'],
+    default: 'pending'
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'paid', 'failed', 'refunded'],
+    default: 'pending'
+  },
+  paymentDetails: {
+    type: mongoose.Schema.Types.Mixed
   },
   appointmentDetails: {
     duration: {
