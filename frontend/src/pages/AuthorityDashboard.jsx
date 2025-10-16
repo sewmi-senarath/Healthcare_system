@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import authorityAPI from '../utils/authorityAPI';
+import PatientSearch from '../components/PatientSearch';
 import { 
   CalendarIcon, 
   DocumentTextIcon, 
@@ -16,7 +17,8 @@ import {
   BeakerIcon,
   ClipboardDocumentListIcon,
   ClockIcon,
-  CheckCircleIcon
+  CheckCircleIcon,
+  MagnifyingGlassIcon
 } from '@heroicons/react/24/outline';
 
 const AuthorityDashboard = () => {
@@ -25,6 +27,8 @@ const AuthorityDashboard = () => {
   const [dashboardStats, setDashboardStats] = useState({});
   const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showPatientSearch, setShowPatientSearch] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState(null);
 
   // Load dashboard data on component mount
   useEffect(() => {
@@ -68,6 +72,17 @@ const AuthorityDashboard = () => {
     await logout();
     toast.success('Logged out successfully');
     navigate('/', { replace: true });
+  };
+
+  const handlePatientSelect = (patient) => {
+    setSelectedPatient(patient);
+    toast.success(`Selected patient: ${patient.name}`);
+    // You can add more logic here to navigate to patient details or perform actions
+  };
+
+  const handlePatientSearchClose = () => {
+    setShowPatientSearch(false);
+    setSelectedPatient(null);
   };
 
   const getRoleIcon = (type) => {
@@ -168,6 +183,13 @@ const AuthorityDashboard = () => {
         ];
       case 'nurse':
         return [
+          {
+            title: 'Patient Search',
+            description: 'Search and scan patient cards',
+            icon: MagnifyingGlassIcon,
+            color: 'bg-purple-500',
+            onClick: () => setShowPatientSearch(true)
+          },
           {
             title: 'Appointments',
             description: 'View patient appointments',
@@ -318,7 +340,9 @@ const AuthorityDashboard = () => {
   const quickStats = getQuickStats(userType);
 
   const handleCardClick = (card) => {
-    if (card.href) {
+    if (card.onClick) {
+      card.onClick();
+    } else if (card.href) {
       navigate(card.href);
     }
   };
@@ -456,6 +480,14 @@ const AuthorityDashboard = () => {
           </div>
         </div>
       </main>
+
+      {/* Patient Search Modal */}
+      {showPatientSearch && (
+        <PatientSearch
+          onPatientSelect={handlePatientSelect}
+          onClose={handlePatientSearchClose}
+        />
+      )}
     </div>
   );
 };

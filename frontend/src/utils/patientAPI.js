@@ -77,6 +77,19 @@ const patientAPI = {
       console.error('Get medical records error:', error);
       return { success: false, message: error.response?.data?.message || 'Failed to fetch medical records' };
     }
+  },
+
+  /**
+   * Search patient by ID
+   */
+  searchPatientById: async (patientId) => {
+    try {
+      const response = await api.get(`/patient/search/${patientId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Search patient by ID error:', error);
+      return { success: false, message: error.response?.data?.message || 'Failed to search patient' };
+    }
   }
 };
 

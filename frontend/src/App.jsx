@@ -18,6 +18,7 @@ import SupportTickets from './pages/SupportTickets';
 import PatientProfile from './pages/PatientProfile';
 import MedicalRecords from './pages/MedicalRecords';
 import AppointmentsPage from './pages/AppointmentsPage';
+import PrescriptionsPage from './pages/PrescriptionsPage';
 
 // Unauthorized page
 const Unauthorized = () => (
@@ -147,6 +148,14 @@ function App() {
                 element={
                   <AuthorityRoute>
                     <AppointmentsPage />
+                  </AuthorityRoute>
+                } 
+              />
+              <Route 
+                path="/authority/prescriptions" 
+                element={
+                  <AuthorityRoute>
+                    <PrescriptionsPage />
                   </AuthorityRoute>
                 } 
               />
