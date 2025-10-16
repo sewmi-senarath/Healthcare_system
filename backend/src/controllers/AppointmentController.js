@@ -1106,10 +1106,18 @@ class AppointmentController {
         };
       }
 
+      // Find appointments by both empID and _id to handle different formats
+      console.log(`Doctor ${user.name} (${user.empID}) looking for appointments with doctorID: ${doctorId} or ${user._id}`);
+      
       const appointments = await Appointment.find({
-        doctorID: doctorId
+        $or: [
+          { doctorID: doctorId },
+          { doctorID: user._id.toString() }
+        ]
       })
       .sort({ dateTime: -1 });
+      
+      console.log(`Found ${appointments.length} appointments for doctor ${user.name}`);
 
       return {
         success: true,
@@ -1137,20 +1145,20 @@ class AppointmentController {
    */
   static async getAllAppointmentsForManager(user) {
     try {
-      console.log(`Getting all appointments for healthcare manager: ${user.userType}`);
+      console.log(`Getting all appointments for ${user.userType}: ${user.userType}`);
       
-      // Check if user is a health care manager
-      if (user.userType !== 'healthCareManager') {
+      // Check if user is a health care manager or nurse
+      if (user.userType !== 'healthCareManager' && user.userType !== 'nurse') {
         return {
           success: false,
-          message: 'Access denied. Only Health Care Managers can access this data.'
+          message: 'Access denied. Only Health Care Managers and Nurses can access this data.'
         };
       }
 
       const appointments = await Appointment.find({})
       .sort({ dateTime: -1 });
       
-      console.log(`Found ${appointments.length} appointments for healthcare manager`);
+      console.log(`Found ${appointments.length} appointments for ${user.userType}`);
 
       return {
         success: true,
