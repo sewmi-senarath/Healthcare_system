@@ -493,4 +493,52 @@ router.put('/:employeeType/:empID/status', [
   }
 });
 
+/**
+ * GET /api/authority/dashboard/stats
+ * Get authority dashboard statistics
+ */
+router.get('/dashboard/stats', authenticateToken, async (req, res) => {
+  try {
+    const { userType, userId } = req.query;
+    // Use empID for doctors and other employees, _id for others
+    const employeeId = req.user.empID || req.user._id;
+    const result = await EmployeeController.getAuthorityDashboardStats(employeeId, userType || req.user.userType);
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(404).json(result);
+    }
+  } catch (error) {
+    console.error('Get authority dashboard stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+/**
+ * GET /api/authority/dashboard/recent-activity
+ * Get authority recent activity
+ */
+router.get('/dashboard/recent-activity', authenticateToken, async (req, res) => {
+  try {
+    const { userType, userId } = req.query;
+    // Use empID for doctors and other employees, _id for others
+    const employeeId = req.user.empID || req.user._id;
+    const result = await EmployeeController.getAuthorityRecentActivity(employeeId, userType || req.user.userType);
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(404).json(result);
+    }
+  } catch (error) {
+    console.error('Get authority recent activity error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
 export default router;

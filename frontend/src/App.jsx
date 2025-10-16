@@ -13,6 +13,11 @@ import AuthorityLogin from './pages/AuthorityLogin';
 import AuthoritySignup from './pages/AuthoritySignup';
 import PatientDashboard from './pages/PatientDashboard';
 import AuthorityDashboard from './pages/AuthorityDashboard';
+import BookAppointment from './pages/BookAppointment';
+import SupportTickets from './pages/SupportTickets';
+import PatientProfile from './pages/PatientProfile';
+import MedicalRecords from './pages/MedicalRecords';
+import AppointmentsPage from './pages/AppointmentsPage';
 
 // Unauthorized page
 const Unauthorized = () => (
@@ -95,16 +100,56 @@ function App() {
                 </PatientRoute>
               } 
             />
-
-            {/* Authority Routes */}
             <Route 
-              path="/authority/dashboard" 
+              path="/patient/book-appointment" 
               element={
-                <AuthorityRoute>
-                  <AuthorityDashboard />
-                </AuthorityRoute>
+                <PatientRoute>
+                  <BookAppointment />
+                </PatientRoute>
               } 
             />
+            <Route 
+              path="/patient/support-tickets" 
+              element={
+                <PatientRoute>
+                  <SupportTickets />
+                </PatientRoute>
+              } 
+            />
+            <Route 
+              path="/patient/profile" 
+              element={
+                <PatientRoute>
+                  <PatientProfile />
+                </PatientRoute>
+              } 
+            />
+            <Route 
+              path="/patient/medical-records" 
+              element={
+                <PatientRoute>
+                  <MedicalRecords />
+                </PatientRoute>
+              } 
+            />
+
+              {/* Authority Routes */}
+              <Route 
+                path="/authority/dashboard" 
+                element={
+                  <AuthorityRoute>
+                    <AuthorityDashboard />
+                  </AuthorityRoute>
+                } 
+              />
+              <Route 
+                path="/authority/appointments" 
+                element={
+                  <AuthorityRoute>
+                    <AppointmentsPage />
+                  </AuthorityRoute>
+                } 
+              />
 
             {/* Utility Routes */}
             <Route path="/unauthorized" element={<Unauthorized />} />

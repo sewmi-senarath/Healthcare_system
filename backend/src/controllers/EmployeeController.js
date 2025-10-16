@@ -366,6 +366,354 @@ class EmployeeController {
       throw error;
     }
   }
+
+  /**
+   * Get authority dashboard statistics
+   */
+  static async getAuthorityDashboardStats(employeeId, userType) {
+    try {
+      console.log(`Getting dashboard stats for employeeId: ${employeeId}, userType: ${userType}`);
+      
+      // Import models dynamically to avoid circular dependencies
+      const Appointment = (await import('../models/Appointment.js')).default;
+      const Prescription = (await import('../models/Prescription.js')).default;
+      const SupportTicket = (await import('../models/SupportTicket.js')).default;
+      const Notification = (await import('../models/Notification.js')).default;
+
+      const stats = {};
+
+      switch (userType) {
+        case 'doctor':
+          // Today's appointments
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const tomorrow = new Date(today);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+
+          const todaysAppointments = await Appointment.find({
+            doctorID: employeeId,
+            dateTime: { $gte: today, $lt: tomorrow },
+            status: { $in: ['approved', 'confirmed', 'pending_approval'] }
+          }).countDocuments();
+
+          // Total appointments for this doctor
+          const totalAppointments = await Appointment.find({
+            doctorID: employeeId
+          }).countDocuments();
+          
+          console.log(`Total appointments for doctor ${employeeId}: ${totalAppointments}`);
+
+          // Pending approval appointments
+          const pendingApprovalAppointments = await Appointment.find({
+            doctorID: employeeId,
+            status: 'pending_approval'
+          }).countDocuments();
+
+          // Upcoming appointments (next 7 days)
+          const nextWeek = new Date();
+          nextWeek.setDate(nextWeek.getDate() + 7);
+          const upcomingAppointments = await Appointment.find({
+            doctorID: employeeId,
+            dateTime: { $gte: new Date(), $lte: nextWeek },
+            status: { $in: ['approved', 'confirmed'] }
+          }).countDocuments();
+
+          // Completed appointments
+          const completedAppointments = await Appointment.find({
+            doctorID: employeeId,
+            status: 'completed'
+          }).countDocuments();
+
+          // Active patients (patients with appointments in last 30 days)
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+          const activePatients = await Appointment.find({
+            doctorID: employeeId,
+            dateTime: { $gte: thirtyDaysAgo },
+            status: { $in: ['approved', 'confirmed', 'completed'] }
+          }).distinct('patientID').length;
+
+          // Pending prescriptions
+          const pendingPrescriptions = await Prescription.find({
+            doctorID: employeeId,
+            status: { $in: ['pending', 'active'] }
+          }).countDocuments();
+
+          // Unread notifications
+          const unreadNotifications = await Notification.find({
+            recipientId: employeeId,
+            recipientType: 'doctor',
+            status: 'unread'
+          }).countDocuments();
+
+          stats.todaysAppointments = todaysAppointments;
+          stats.totalAppointments = totalAppointments;
+          stats.pendingApprovalAppointments = pendingApprovalAppointments;
+          stats.upcomingAppointments = upcomingAppointments;
+          stats.completedAppointments = completedAppointments;
+          stats.activePatients = activePatients;
+          stats.pendingPrescriptions = pendingPrescriptions;
+          stats.unreadNotifications = unreadNotifications;
+          break;
+
+        case 'nurse':
+          // Today's appointments
+          const nurseToday = new Date();
+          nurseToday.setHours(0, 0, 0, 0);
+          const nurseTomorrow = new Date(nurseToday);
+          nurseTomorrow.setDate(nurseTomorrow.getDate() + 1);
+
+          const nurseTodaysAppointments = await Appointment.find({
+            dateTime: { $gte: nurseToday, $lt: nurseTomorrow },
+            status: { $in: ['approved', 'confirmed', 'pending_approval'] }
+          }).countDocuments();
+
+          // Total appointments
+          const nurseTotalAppointments = await Appointment.find({}).countDocuments();
+
+          // Assigned patients (nurse-specific)
+          const Nurse = (await import('../models/Nurse.js')).default;
+          const nurse = await Nurse.findOne({ empID: employeeId });
+          const assignedPatientCount = nurse?.assignedPatients?.length || 0;
+
+          // Unread notifications
+          const nurseUnreadNotifications = await Notification.find({
+            recipientId: employeeId,
+            recipientType: 'nurse',
+            status: 'unread'
+          }).countDocuments();
+
+          stats.todaysAppointments = nurseTodaysAppointments;
+          stats.totalAppointments = nurseTotalAppointments;
+          stats.assignedPatients = assignedPatientCount;
+          stats.unreadNotifications = nurseUnreadNotifications;
+          break;
+
+        case 'healthCareManager':
+          // Pending approvals
+          const pendingApprovals = await Appointment.find({
+            status: 'pending_approval',
+            'approvalWorkflow.approvalStatus': 'pending'
+          }).countDocuments();
+
+          // Active support tickets
+          const activeTickets = await SupportTicket.find({
+            status: { $in: ['open', 'in_progress'] }
+          }).countDocuments();
+
+          // Total staff (count all employees)
+          const Employee = (await import('../models/Employee.js')).default;
+          const totalStaff = await Employee.find({}).countDocuments();
+
+          // Unread notifications
+          const managerUnreadNotifications = await Notification.find({
+            recipientId: employeeId,
+            recipientType: 'healthCareManager',
+            status: 'unread'
+          }).countDocuments();
+
+          stats.pendingApprovals = pendingApprovals;
+          stats.activeTickets = activeTickets;
+          stats.totalStaff = totalStaff;
+          stats.unreadNotifications = managerUnreadNotifications;
+          break;
+
+        case 'pharmacist':
+          // Low stock medicines (assuming quantity < 10 is low)
+          const MedicineStock = (await import('../models/MedicineStock.js')).default;
+          const lowStockMedicines = await MedicineStock.find({
+            quantityAvailable: { $lt: 10 }
+          }).countDocuments();
+
+          // Pending prescriptions
+          const pharmacistPendingPrescriptions = await Prescription.find({
+            status: { $in: ['pending', 'sent_to_pharmacy'] }
+          }).countDocuments();
+
+          // Total medicines
+          const totalMedicines = await MedicineStock.find({}).countDocuments();
+
+          // Unread notifications
+          const pharmacistUnreadNotifications = await Notification.find({
+            recipientId: employeeId,
+            recipientType: 'pharmacist',
+            status: 'unread'
+          }).countDocuments();
+
+          stats.lowStockMedicines = lowStockMedicines;
+          stats.pendingPrescriptions = pharmacistPendingPrescriptions;
+          stats.totalMedicines = totalMedicines;
+          stats.unreadNotifications = pharmacistUnreadNotifications;
+          break;
+
+        default:
+          // Default stats for other roles
+          const defaultUnreadNotifications = await Notification.find({
+            recipientId: employeeId,
+            status: 'unread'
+          }).countDocuments();
+
+          stats.activeUsers = 0; // This would need to be calculated based on active sessions
+          stats.todaysActivity = 0; // This would need activity tracking
+          stats.systemHealth = '99%';
+          stats.unreadNotifications = defaultUnreadNotifications;
+          break;
+      }
+
+      return {
+        success: true,
+        stats
+      };
+    } catch (error) {
+      console.error('Get authority dashboard stats error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get authority recent activity
+   */
+  static async getAuthorityRecentActivity(employeeId, userType) {
+    try {
+      // Import models dynamically
+      const Appointment = (await import('../models/Appointment.js')).default;
+      const Prescription = (await import('../models/Prescription.js')).default;
+      const SupportTicket = (await import('../models/SupportTicket.js')).default;
+      const Notification = (await import('../models/Notification.js')).default;
+
+      const activities = [];
+
+      switch (userType) {
+        case 'doctor':
+          // Recent appointments
+          const recentDoctorAppointments = await Appointment.find({
+            doctorID: employeeId
+          })
+          .populate('patientID', 'name')
+          .sort({ createdAt: -1 })
+          .limit(3);
+
+          recentDoctorAppointments.forEach(appointment => {
+            activities.push({
+              type: 'appointment',
+              title: `Appointment with ${appointment.patientID?.name || 'Patient'}`,
+              description: `Appointment ${appointment.status} - ${appointment.reasonForVisit}`,
+              date: appointment.createdAt,
+              icon: 'CalendarIcon'
+            });
+          });
+
+          // Recent prescriptions
+          const recentDoctorPrescriptions = await Prescription.find({
+            doctorID: employeeId
+          })
+          .populate('patientID', 'name')
+          .sort({ dateIssued: -1 })
+          .limit(2);
+
+          recentDoctorPrescriptions.forEach(prescription => {
+            activities.push({
+              type: 'prescription',
+              title: `Prescription for ${prescription.patientID?.name || 'Patient'}`,
+              description: `${prescription.medicineList.length} medications prescribed`,
+              date: prescription.dateIssued,
+              icon: 'DocumentTextIcon'
+            });
+          });
+          break;
+
+        case 'healthCareManager':
+          // Recent appointment approvals/declines
+          const recentManagerAppointments = await Appointment.find({
+            'approvalWorkflow.reviewedBy': employeeId
+          })
+          .populate('patientID', 'name')
+          .populate('doctorID', 'name')
+          .sort({ 'approvalWorkflow.reviewedDate': -1 })
+          .limit(3);
+
+          recentManagerAppointments.forEach(appointment => {
+            const action = appointment.approvalWorkflow.approvalStatus === 'approved' ? 'approved' : 'declined';
+            activities.push({
+              type: 'appointment',
+              title: `${action.charAt(0).toUpperCase() + action.slice(1)} appointment`,
+              description: `Appointment with ${appointment.patientID?.name || 'Patient'} and Dr. ${appointment.doctorID?.name || 'Unknown'}`,
+              date: appointment.approvalWorkflow.reviewedDate,
+              icon: 'CalendarIcon'
+            });
+          });
+
+          // Recent support ticket resolutions
+          const recentTickets = await SupportTicket.find({
+            status: 'resolved'
+          })
+          .sort({ lastUpdated: -1 })
+          .limit(2);
+
+          recentTickets.forEach(ticket => {
+            activities.push({
+              type: 'support',
+              title: `Resolved support ticket #${ticket.ticketID}`,
+              description: ticket.resolution || 'Support ticket resolved',
+              date: ticket.lastUpdated,
+              icon: 'TicketIcon'
+            });
+          });
+          break;
+
+        case 'pharmacist':
+          // Recent prescription dispensing
+          const recentPharmacistPrescriptions = await Prescription.find({
+            status: 'dispensed'
+          })
+          .populate('patientID', 'name')
+          .populate('doctorID', 'name')
+          .sort({ dispensedDate: -1 })
+          .limit(3);
+
+          recentPharmacistPrescriptions.forEach(prescription => {
+            activities.push({
+              type: 'prescription',
+              title: `Dispensed prescription`,
+              description: `Prescription for ${prescription.patientID?.name || 'Patient'} from Dr. ${prescription.doctorID?.name || 'Unknown'}`,
+              date: prescription.dispensedDate,
+              icon: 'BeakerIcon'
+            });
+          });
+          break;
+      }
+
+      // Add recent notifications for all types
+      const recentNotifications = await Notification.find({
+        recipientId: employeeId,
+        recipientType: userType
+      })
+      .sort({ createdAt: -1 })
+      .limit(2);
+
+      recentNotifications.forEach(notification => {
+        activities.push({
+          type: 'notification',
+          title: 'System notification',
+          description: notification.message,
+          date: notification.createdAt,
+          icon: 'BellIcon'
+        });
+      });
+
+      // Sort all activities by date (most recent first)
+      activities.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      return {
+        success: true,
+        activities: activities.slice(0, 6) // Return top 6 most recent activities
+      };
+    } catch (error) {
+      console.error('Get authority recent activity error:', error);
+      throw error;
+    }
+  }
 }
 
 export default EmployeeController;

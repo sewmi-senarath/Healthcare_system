@@ -307,6 +307,335 @@ class PatientController {
       throw error;
     }
   }
+
+  /**
+   * Get patient dashboard statistics
+   */
+  static async getDashboardStats(patientId) {
+    try {
+      // Import models dynamically to avoid circular dependencies
+      const Appointment = (await import('../models/Appointment.js')).default;
+      const Prescription = (await import('../models/Prescription.js')).default;
+      const SupportTicket = (await import('../models/SupportTicket.js')).default;
+      const Notification = (await import('../models/Notification.js')).default;
+
+      // Get upcoming appointments
+      const upcomingAppointments = await Appointment.find({
+        patientID: patientId,
+        status: { $in: ['approved', 'confirmed', 'pending_approval'] },
+        dateTime: { $gte: new Date() }
+      }).countDocuments();
+
+      // Get total medical records (prescriptions count as medical records)
+      const medicalRecords = await Prescription.find({
+        patientID: patientId
+      }).countDocuments();
+
+      // Get active prescriptions
+      const activePrescriptions = await Prescription.find({
+        patientID: patientId,
+        status: { $in: ['active', 'dispensed'] }
+      }).countDocuments();
+
+      // Get unread notifications
+      const unreadNotifications = await Notification.find({
+        recipientId: patientId,
+        recipientType: 'patient',
+        status: 'unread'
+      }).countDocuments();
+
+      return {
+        success: true,
+        stats: {
+          upcomingAppointments,
+          medicalRecords,
+          activePrescriptions,
+          unreadNotifications
+        }
+      };
+    } catch (error) {
+      console.error('Get dashboard stats error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get patient recent activity
+   */
+  static async getRecentActivity(patientId) {
+    try {
+      console.log('Getting recent activity for patient:', patientId);
+      
+      // Import models dynamically
+      const Appointment = (await import('../models/Appointment.js')).default;
+      const Prescription = (await import('../models/Prescription.js')).default;
+      const SupportTicket = (await import('../models/SupportTicket.js')).default;
+      const Notification = (await import('../models/Notification.js')).default;
+
+      const activities = [];
+
+      // Get recent appointments
+      const recentAppointments = await Appointment.find({
+        patientID: patientId
+      })
+      .populate('doctorID', 'name specialization')
+      .sort({ createdAt: -1 })
+      .limit(3)
+      .catch(err => {
+        console.log('Error fetching appointments:', err.message);
+        return [];
+      });
+
+      recentAppointments.forEach(appointment => {
+        activities.push({
+          type: 'appointment',
+          title: `Appointment ${appointment.status === 'approved' ? 'approved' : appointment.status === 'declined' ? 'declined' : 'scheduled'}`,
+          description: appointment.status === 'declined' 
+            ? `Appointment with Dr. ${appointment.doctorID?.name || 'Unknown'} was declined. Reason: ${appointment.approvalWorkflow?.declineReason || 'Not specified'}`
+            : `Appointment with Dr. ${appointment.doctorID?.name || 'Unknown'} scheduled for ${appointment.dateTime.toLocaleDateString()}`,
+          date: appointment.createdAt,
+          icon: 'CalendarIcon'
+        });
+      });
+
+      // Get recent prescriptions
+      const recentPrescriptions = await Prescription.find({
+        patientID: patientId
+      })
+      .populate('doctorID', 'name')
+      .sort({ dateIssued: -1 })
+      .limit(2)
+      .catch(err => {
+        console.log('Error fetching prescriptions:', err.message);
+        return [];
+      });
+
+      recentPrescriptions.forEach(prescription => {
+        activities.push({
+          type: 'prescription',
+          title: 'New prescription received',
+          description: `Prescription from Dr. ${prescription.doctorID?.name || 'Unknown'} with ${prescription.medicineList.length} medications`,
+          date: prescription.dateIssued,
+          icon: 'HeartIcon'
+        });
+      });
+
+      // Get recent notifications
+      const recentNotifications = await Notification.find({
+        recipientId: patientId,
+        recipientType: 'patient'
+      })
+      .sort({ createdAt: -1 })
+      .limit(2)
+      .catch(err => {
+        console.log('Error fetching notifications:', err.message);
+        return [];
+      });
+
+      recentNotifications.forEach(notification => {
+        activities.push({
+          type: 'notification',
+          title: 'New notification',
+          description: notification.message,
+          date: notification.createdAt,
+          icon: 'BellIcon'
+        });
+      });
+
+      // Sort all activities by date (most recent first)
+      activities.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      return {
+        success: true,
+        activities: activities.slice(0, 6), // Return top 6 most recent activities
+        message: activities.length === 0 ? 'No recent activity found' : 'Recent activity retrieved successfully'
+      };
+    } catch (error) {
+      console.error('Get recent activity error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get patient appointments
+   */
+  static async getPatientAppointments(patientId) {
+    try {
+      const Appointment = (await import('../models/Appointment.js')).default;
+
+      const appointments = await Appointment.find({
+        patientID: patientId
+      })
+      .populate('doctorID', 'name specialization')
+      .sort({ dateTime: -1 });
+
+      return {
+        success: true,
+        appointments: appointments.map(appointment => ({
+          id: appointment._id,
+          appointmentID: appointment.appointmentID,
+          doctor: appointment.doctorID,
+          dateTime: appointment.dateTime,
+          status: appointment.status,
+          reasonForVisit: appointment.reasonForVisit,
+          consultationFee: appointment.consultationFee,
+          department: appointment.appointmentDetails?.location?.department
+        }))
+      };
+    } catch (error) {
+      console.error('Get patient appointments error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get patient notifications
+   */
+  static async getPatientNotifications(patientId) {
+    try {
+      const Notification = (await import('../models/Notification.js')).default;
+
+      const notifications = await Notification.find({
+        recipientId: patientId,
+        recipientType: 'patient'
+      })
+      .sort({ createdAt: -1 });
+
+      return {
+        success: true,
+        notifications: notifications.map(notification => ({
+          id: notification._id,
+          message: notification.message,
+          type: notification.type,
+          status: notification.status,
+          createdAt: notification.createdAt
+        }))
+      };
+    } catch (error) {
+      console.error('Get patient notifications error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update patient profile
+   */
+  static async updatePatientProfile(patientId, profileData) {
+    try {
+      const patient = await Patient.findById(patientId);
+      if (!patient) {
+        return {
+          success: false,
+          message: 'Patient not found'
+        };
+      }
+
+      // Update profile fields
+      if (profileData.name) patient.name = profileData.name;
+      if (profileData.email) patient.email = profileData.email;
+      if (profileData.dateOfBirth) patient.dateOfBirth = new Date(profileData.dateOfBirth);
+      if (profileData.gender) patient.gender = profileData.gender;
+
+      // Update contact info
+      if (profileData.contactInfo) {
+        patient.contactInfo = {
+          ...patient.contactInfo,
+          ...profileData.contactInfo
+        };
+      }
+
+      // Update address
+      if (profileData.address) {
+        patient.address = {
+          ...patient.address,
+          ...profileData.address
+        };
+      }
+
+      await patient.save();
+
+      return {
+        success: true,
+        message: 'Profile updated successfully',
+        patient: {
+          id: patient._id,
+          name: patient.name,
+          email: patient.email,
+          dateOfBirth: patient.dateOfBirth,
+          gender: patient.gender,
+          contactInfo: patient.contactInfo,
+          address: patient.address
+        }
+      };
+    } catch (error) {
+      console.error('Update patient profile error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get patient medical records
+   */
+  static async getPatientMedicalRecords(patientId) {
+    try {
+      // Import models dynamically
+      const Prescription = (await import('../models/Prescription.js')).default;
+      const Appointment = (await import('../models/Appointment.js')).default;
+
+      // Get prescriptions (medical records)
+      const prescriptions = await Prescription.find({
+        patientID: patientId
+      })
+      .populate('doctorID', 'name specialization')
+      .sort({ dateIssued: -1 });
+
+      // Get completed appointments
+      const appointments = await Appointment.find({
+        patientID: patientId,
+        status: 'completed'
+      })
+      .populate('doctorID', 'name specialization')
+      .sort({ dateTime: -1 });
+
+      const medicalRecords = [
+        ...prescriptions.map(prescription => ({
+          type: 'prescription',
+          id: prescription._id,
+          date: prescription.dateIssued,
+          doctor: prescription.doctorID,
+          description: `Prescription with ${prescription.medicineList.length} medications`,
+          details: {
+            medicineList: prescription.medicineList,
+            dosageInstruction: prescription.dosageInstruction,
+            status: prescription.status
+          }
+        })),
+        ...appointments.map(appointment => ({
+          type: 'appointment',
+          id: appointment._id,
+          date: appointment.dateTime,
+          doctor: appointment.doctorID,
+          description: `Appointment - ${appointment.reasonForVisit}`,
+          details: {
+            department: appointment.appointmentDetails?.location?.department,
+            duration: appointment.appointmentDetails?.duration,
+            consultationFee: appointment.consultationFee
+          }
+        }))
+      ];
+
+      // Sort by date (most recent first)
+      medicalRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      return {
+        success: true,
+        medicalRecords: medicalRecords.slice(0, 50) // Limit to 50 most recent records
+      };
+    } catch (error) {
+      console.error('Get patient medical records error:', error);
+      throw error;
+    }
+  }
 }
 
 export default PatientController;
