@@ -376,6 +376,29 @@ router.put('/allergies', [
 });
 
 /**
+ * GET /api/patient
+ * Get all patients (for authority users)
+ */
+router.get('/', authenticateToken, async (req, res) => {
+  try {
+    const filters = req.query;
+    const result = await PatientController.getAllPatients(filters);
+    
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(404).json(result);
+    }
+  } catch (error) {
+    console.error('Get all patients error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+/**
  * GET /api/patient/:patientId
  * Get patient by ID (for staff/doctor use)
  */
