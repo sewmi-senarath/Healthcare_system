@@ -175,23 +175,23 @@ class EmployeeController {
       let allowedUpdates = ['name', 'email', 'contactInfo', 'department', 'position'];
       
       // Add type-specific fields
-      switch (employeeType) {
-        case 'doctor':
-          allowedUpdates.push('specialization', 'availability', 'assignedHospitalID', 'phone', 'whatApp', 'preferredCommunicationMethod');
-          break;
-        case 'nurse':
-          allowedUpdates.push('assignedWard', 'shiftSchedule');
-          break;
-        case 'pharmacist':
-          allowedUpdates.push('licenseNumber');
-          break;
-        case 'hospitalStaff':
-          allowedUpdates.push('role', 'assignedDepartment', 'shiftSchedule');
-          break;
-        case 'healthCareManager':
-          allowedUpdates.push('assignedHospital');
-          break;
-      }
+      // switch (employeeType) {
+      //   case 'doctor':
+      //     allowedUpdates.push('specialization', 'availability', 'assignedHospitalID', 'phone', 'whatApp', 'preferredCommunicationMethod');
+      //     break;
+      //   case 'nurse':
+      //     allowedUpdates.push('assignedWard', 'shiftSchedule');
+      //     break;
+      //   case 'pharmacist':
+      //     allowedUpdates.push('licenseNumber');
+      //     break;
+      //   case 'hospitalStaff':
+      //     allowedUpdates.push('role', 'assignedDepartment', 'shiftSchedule');
+      //     break;
+      //   case 'healthCareManager':
+      //     allowedUpdates.push('assignedHospital');
+      //     break;
+      // }
 
       const updates = {};
       allowedUpdates.forEach(field => {
