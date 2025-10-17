@@ -392,17 +392,10 @@ supportTicketSchema.statics.getTicketStats = function() {
   ]);
 };
 
-// Pre-save middleware to generate ticket ID
+// Pre-save middleware to update lastUpdated timestamp
 supportTicketSchema.pre('save', function(next) {
-  if (!this.ticketID) {
-    const timestamp = Date.now().toString();
-    const random = Math.random().toString(36).substring(2, 6);
-    this.ticketID = `TICKET${timestamp.substring(6)}${random}`.toUpperCase();
-  }
-  
   // Update lastUpdated timestamp
   this.lastUpdated = new Date();
-  
   next();
 });
 

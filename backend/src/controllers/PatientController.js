@@ -331,10 +331,10 @@ class PatientController {
         patientID: patientId
       }).countDocuments();
 
-      // Get active prescriptions
+      // Get active prescriptions (pending, sent_to_pharmacy, dispensed)
       const activePrescriptions = await Prescription.find({
         patientID: patientId,
-        status: { $in: ['active', 'dispensed'] }
+        status: { $in: ['pending', 'sent_to_pharmacy', 'dispensed'] }
       }).countDocuments();
 
       // Get unread notifications

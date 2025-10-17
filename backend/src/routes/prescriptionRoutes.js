@@ -4,10 +4,15 @@ import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// Debug: Log all routes when they're registered
+console.log('=== PRESCRIPTION ROUTES REGISTRATION ===');
+console.log('Registering prescription routes...');
+
 /**
  * POST /api/prescriptions
  * Create a new prescription (Doctor only)
  */
+console.log('Registering POST /prescriptions');
 router.post('/', authenticateToken, async (req, res) => {
   try {
     // Check if user is a doctor
@@ -38,6 +43,7 @@ router.post('/', authenticateToken, async (req, res) => {
  * GET /api/prescriptions/doctor
  * Get prescriptions for a doctor
  */
+console.log('Registering GET /prescriptions/doctor');
 router.get('/doctor', authenticateToken, async (req, res) => {
   try {
     // Check if user is a doctor
@@ -163,12 +169,48 @@ router.get('/stats', authenticateToken, async (req, res) => {
 });
 
 /**
- * GET /api/prescriptions/patient/:patientId
- * Search prescriptions by patient ID
+ * GET /api/prescriptions/patient/my-prescriptions
+ * Get prescriptions for the authenticated patient
  */
+console.log('Registering GET /prescriptions/patient/my-prescriptions');
+router.get('/patient/my-prescriptions', authenticateToken, async (req, res) => {
+  try {
+    console.log('=== PATIENT MY PRESCRIPTIONS ROUTE HIT ===');
+    console.log('req.user:', req.user);
+    console.log('req.userType:', req.userType);
+    console.log('req.userId:', req.userId);
+    
+    // Check if user is a patient
+    if (req.userType !== 'patient') {
+      console.log('User is not a patient, userType:', req.userType);
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+
+    console.log('Getting prescriptions for patientId:', req.user.patientId);
+    const result = await PrescriptionController.searchPrescriptionsByPatient(req.user.patientId);
+    console.log('Prescription result:', result);
+    res.json(result);
+  } catch (error) {
+    console.error('Get patient prescriptions error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+/**
+ * GET /api/prescriptions/patient/:patientId
+ * Search prescriptions by patient ID (for staff/doctor use)
+ */
+console.log('Registering GET /prescriptions/patient/:patientId');
 router.get('/patient/:patientId', authenticateToken, async (req, res) => {
   try {
     const { patientId } = req.params;
+    console.log('Getting prescriptions for patientId (staff/doctor):', patientId);
     const result = await PrescriptionController.searchPrescriptionsByPatient(patientId);
     res.json(result);
   } catch (error) {
@@ -179,5 +221,8 @@ router.get('/patient/:patientId', authenticateToken, async (req, res) => {
     });
   }
 });
+
+// Debug: Log that routes are fully registered
+console.log('All prescription routes registered successfully');
 
 export default router;

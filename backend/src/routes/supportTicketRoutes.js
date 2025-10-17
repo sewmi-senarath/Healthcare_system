@@ -13,11 +13,13 @@ const validateSupportTicket = [
     .isLength({ min: 10, max: 1000 })
     .withMessage('Issue description must be between 10 and 1000 characters'),
   body('priority')
+    .optional()
     .isIn(['low', 'medium', 'high', 'urgent'])
     .withMessage('Priority must be low, medium, high, or urgent'),
-  body('patientID')
-    .notEmpty()
-    .withMessage('Patient ID is required')
+  body('category')
+    .optional()
+    .isIn(['technical_issue', 'billing_inquiry', 'appointment_issue', 'medical_record_access', 'prescription_issue', 'general_inquiry', 'complaint', 'feedback', 'emergency'])
+    .withMessage('Invalid category')
 ];
 
 const checkValidationErrors = (req, res) => {
@@ -42,7 +44,7 @@ router.get('/', authenticateToken, async (req, res) => {
     
     // If user is a patient, only show their tickets
     if (req.user.userType === 'patient') {
-      query.patientID = req.user._id;
+      query.patientID = req.user.patientId;
     }
     // If user is a health care manager, show all tickets
     else if (req.user.userType === 'healthCareManager') {
@@ -54,8 +56,6 @@ router.get('/', authenticateToken, async (req, res) => {
     }
 
     const tickets = await SupportTicket.find(query)
-      .populate('patientID', 'name email')
-      .populate('assignedStaffID', 'name email')
       .sort({ dateCreated: -1 });
 
     res.json({
@@ -88,43 +88,72 @@ router.get('/', authenticateToken, async (req, res) => {
  */
 router.post('/', [authenticateToken, ...validateSupportTicket], async (req, res) => {
   try {
+    console.log('=== CREATE SUPPORT TICKET REQUEST ===');
+    console.log('Request body:', req.body);
+    console.log('User:', req.user);
+    console.log('User type:', req.userType);
+    
     const validationError = checkValidationErrors(req, res);
     if (validationError) return validationError;
 
-    const { issueDescription, priority, patientID } = req.body;
+    const { issueDescription, priority, category } = req.body;
+
+    // Get patientID from authenticated user
+    let patientID;
+    if (req.user.userType === 'patient') {
+      patientID = req.user.patientId;
+      console.log('Patient ID:', patientID);
+    } else {
+      console.log('User is not a patient:', req.user.userType);
+      return res.status(403).json({
+        success: false,
+        message: 'Only patients can create support tickets'
+      });
+    }
 
     // Generate unique ticket ID
     const ticketID = `TKT${Date.now()}${Math.random().toString(36).substring(2, 4).toUpperCase()}`;
+    console.log('Generated ticket ID:', ticketID);
 
-    const ticket = new SupportTicket({
+    const ticketData = {
       ticketID,
       patientID,
       issueDescription,
       status: 'open',
       priority: priority || 'medium',
+      category: category || 'general_inquiry',
       dateCreated: new Date(),
       lastUpdated: new Date()
-    });
+    };
+    
+    console.log('Ticket data:', ticketData);
 
-    await ticket.save();
+    const ticket = new SupportTicket(ticketData);
+    console.log('Created ticket object:', ticket);
+
+    const savedTicket = await ticket.save();
+    console.log('Saved ticket:', savedTicket);
 
     res.status(201).json({
       success: true,
       message: 'Support ticket created successfully',
       ticket: {
-        id: ticket._id,
-        ticketID: ticket.ticketID,
-        issueDescription: ticket.issueDescription,
-        status: ticket.status,
-        priority: ticket.priority,
-        dateCreated: ticket.dateCreated
+        id: savedTicket._id,
+        ticketID: savedTicket.ticketID,
+        issueDescription: savedTicket.issueDescription,
+        status: savedTicket.status,
+        priority: savedTicket.priority,
+        category: savedTicket.category,
+        dateCreated: savedTicket.dateCreated
       }
     });
   } catch (error) {
     console.error('Create support ticket error:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: 'Internal server error',
+      error: error.message
     });
   }
 });
@@ -135,9 +164,7 @@ router.post('/', [authenticateToken, ...validateSupportTicket], async (req, res)
  */
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
-    const ticket = await SupportTicket.findById(req.params.id)
-      .populate('patientID', 'name email')
-      .populate('assignedStaffID', 'name email');
+    const ticket = await SupportTicket.findById(req.params.id);
 
     if (!ticket) {
       return res.status(404).json({
@@ -147,9 +174,14 @@ router.get('/:id', authenticateToken, async (req, res) => {
     }
 
     // Check if user has access to this ticket
-    const hasAccess = req.user.userType === 'healthCareManager' || 
-                     ticket.patientID._id.toString() === req.user._id.toString() ||
-                     (ticket.assignedStaffID && ticket.assignedStaffID._id.toString() === req.user._id.toString());
+    let hasAccess = false;
+    if (req.user.userType === 'healthCareManager') {
+      hasAccess = true;
+    } else if (req.user.userType === 'patient') {
+      hasAccess = ticket.patientID === req.user.patientId;
+    } else {
+      hasAccess = ticket.assignedStaffID === req.user.empID;
+    }
 
     if (!hasAccess) {
       return res.status(403).json({
