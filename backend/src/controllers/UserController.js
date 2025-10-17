@@ -14,7 +14,21 @@ class UserController {
    * @param {string} userType 
    * @returns {Promise<Object|null>}
    */
- 
+  static async findUserByEmailAndType(email, userType) {
+    try {
+      // For discriminator models, we need to use the specific model
+      if (userType === 'patient') {
+        const Patient = (await import('../models/Patient.js')).default;
+        return await Patient.findOne({ email });
+      } else {
+        // For employee types, use the base User model with discriminator
+        return await User.findOne({ email, userType });
+      }
+    } catch (error) {
+      console.error('Error finding user by email and type:', error);
+      throw error;
+    }
+  }
 
   /**
    * Check if email already exists
