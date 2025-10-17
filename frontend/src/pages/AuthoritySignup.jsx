@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
 import { handleAPIError } from '../utils/api';
+import { getDashboardRoute } from '../utils/dashboardRoutes';
 import LoadingSpinner from '../components/LoadingSpinner';
 import toast from 'react-hot-toast';
 import { 
@@ -115,7 +116,9 @@ const AuthoritySignup = () => {
       
       if (result.success) {
         toast.success('Account created successfully!');
-        navigate('/authority/dashboard');
+        // Redirect to the appropriate dashboard based on user type
+        const dashboardRoute = getDashboardRoute(selectedUserType);
+        navigate(dashboardRoute);
       } else {
         toast.error(result.message || 'Registration failed');
       }

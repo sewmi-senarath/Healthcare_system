@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
-import ProtectedRoute, { PatientRoute, AuthorityRoute } from './components/ProtectedRoute';
+import ProtectedRoute, { PatientRoute, AuthorityRoute, DoctorRoute, NurseRoute, HealthCareManagerRoute, PharmacistRoute, SystemAdminRoute } from './components/ProtectedRoute';
 import LoadingSpinner from './components/LoadingSpinner';
 
 // Pages
@@ -13,6 +13,13 @@ import AuthorityLogin from './pages/AuthorityLogin';
 import AuthoritySignup from './pages/AuthoritySignup';
 import PatientDashboard from './pages/PatientDashboard';
 import AuthorityDashboard from './pages/AuthorityDashboard';
+import AuthorityProfile from './pages/AuthorityProfile';
+import AuthorityPatientRecords from './pages/AuthorityPatientRecords';
+import DoctorDashboard from './pages/DoctorDashboard';
+import NurseDashboard from './pages/NurseDashboard';
+import HealthcareManagerDashboard from './pages/HealthcareManagerDashboard';
+import PharmacistDashboard from './pages/PharmacistDashboard';
+import SystemAdminDashboard from './pages/SystemAdminDashboard';
 import BookAppointment from './pages/BookAppointment';
 import SupportTickets from './pages/SupportTickets';
 import PatientProfile from './pages/PatientProfile';
@@ -161,6 +168,46 @@ function App() {
                 } 
               />
               <Route 
+                path="/doctor/dashboard" 
+                element={
+                  <DoctorRoute>
+                    <DoctorDashboard />
+                  </DoctorRoute>
+                } 
+              />
+              <Route 
+                path="/nurse/dashboard" 
+                element={
+                  <NurseRoute>
+                    <NurseDashboard />
+                  </NurseRoute>
+                } 
+              />
+              <Route 
+                path="/healthcare-manager/dashboard" 
+                element={
+                  <HealthCareManagerRoute>
+                    <HealthcareManagerDashboard />
+                  </HealthCareManagerRoute>
+                } 
+              />
+              <Route 
+                path="/pharmacist/dashboard" 
+                element={
+                  <PharmacistRoute>
+                    <PharmacistDashboard />
+                  </PharmacistRoute>
+                } 
+              />
+              <Route 
+                path="/system-admin/dashboard" 
+                element={
+                  <SystemAdminRoute>
+                    <SystemAdminDashboard />
+                  </SystemAdminRoute>
+                } 
+              />
+              <Route 
                 path="/authority/appointments" 
                 element={
                   <AuthorityRoute>
@@ -173,6 +220,46 @@ function App() {
                 element={
                   <AuthorityRoute>
                     <PrescriptionsPage />
+                  </AuthorityRoute>
+                } 
+              />
+              <Route 
+                path="/authority/profile" 
+                element={
+                  <AuthorityRoute>
+                    <AuthorityProfile />
+                  </AuthorityRoute>
+                } 
+              />
+              <Route 
+                path="/authority/notifications" 
+                element={
+                  <AuthorityRoute>
+                    <NotificationsPage />
+                  </AuthorityRoute>
+                } 
+              />
+              <Route 
+                path="/authority/patients" 
+                element={
+                  <AuthorityRoute>
+                    <AuthorityPatientRecords />
+                  </AuthorityRoute>
+                } 
+              />
+              <Route 
+                path="/authority/medical-records" 
+                element={
+                  <AuthorityRoute>
+                    <MedicalRecords />
+                  </AuthorityRoute>
+                } 
+              />
+              <Route 
+                path="/authority/support-tickets" 
+                element={
+                  <AuthorityRoute>
+                    <SupportTickets />
                   </AuthorityRoute>
                 } 
               />

@@ -6,10 +6,17 @@ const authorityAPI = {
    */
   getDashboardStats: async (userType, userId) => {
     try {
-      const response = await api.get(`/employee/dashboard/stats?userType=${userType}&userId=${userId}`);
+      console.log('🔍 AuthorityAPI.getDashboardStats called with:');
+      console.log('  - userType:', userType);
+      console.log('  - userId:', userId);
+      console.log('  - URL:', `/authority/dashboard/stats?userType=${userType}&userId=${userId}`);
+      
+      const response = await api.get(`/authority/dashboard/stats?userType=${userType}&userId=${userId}`);
+      console.log('📊 API Response:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Get authority dashboard stats error:', error);
+      console.error('❌ Get authority dashboard stats error:', error);
+      console.error('Error details:', error.response?.data);
       // Return success with empty stats instead of error for better UX
       return { 
         success: true, 
@@ -24,7 +31,7 @@ const authorityAPI = {
    */
   getRecentActivity: async (userType, userId) => {
     try {
-      const response = await api.get(`/employee/dashboard/recent-activity?userType=${userType}&userId=${userId}`);
+      const response = await api.get(`/authority/dashboard/recent-activity?userType=${userType}&userId=${userId}`);
       return response.data;
     } catch (error) {
       console.error('Get authority recent activity error:', error);
@@ -113,6 +120,32 @@ const authorityAPI = {
     } catch (error) {
       console.error('Decline appointment error:', error);
       return { success: false, message: error.response?.data?.message || 'Failed to decline appointment' };
+    }
+  },
+
+  /**
+   * Get patient by ID (for authority users)
+   */
+  getPatientById: async (patientId) => {
+    try {
+      const response = await api.get(`/patient/${patientId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get patient by ID error:', error);
+      return { success: false, message: error.response?.data?.message || 'Failed to fetch patient' };
+    }
+  },
+
+  /**
+   * Get all patients (for authority users)
+   */
+  getAllPatients: async () => {
+    try {
+      const response = await api.get('/patient');
+      return response.data;
+    } catch (error) {
+      console.error('Get all patients error:', error);
+      return { success: false, message: error.response?.data?.message || 'Failed to fetch patients' };
     }
   }
 };

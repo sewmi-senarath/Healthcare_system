@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingSpinner from './LoadingSpinner';
+import { getDashboardRoute } from '../utils/dashboardRoutes';
 
 const ProtectedRoute = ({ children, allowedRoles = [], requireAuth = true }) => {
   const { isAuthenticated, userType, loading } = useAuth();
@@ -21,12 +22,8 @@ const ProtectedRoute = ({ children, allowedRoles = [], requireAuth = true }) => 
 
   // If user is authenticated but trying to access login/signup pages
   if (!requireAuth && isAuthenticated) {
-    // Redirect based on user type
-    if (userType === 'patient') {
-      return <Navigate to="/patient/dashboard" replace />;
-    } else {
-      return <Navigate to="/authority/dashboard" replace />;
-    }
+    // Redirect to the appropriate dashboard based on user type
+    return <Navigate to={getDashboardRoute(userType)} replace />;
   }
 
   // If specific roles are required, check if user has permission
@@ -58,6 +55,12 @@ export const DoctorRoute = ({ children }) => (
 
 export const PharmacistRoute = ({ children }) => (
   <ProtectedRoute allowedRoles={['pharmacist']}>
+    {children}
+  </ProtectedRoute>
+);
+
+export const NurseRoute = ({ children }) => (
+  <ProtectedRoute allowedRoles={['nurse']}>
     {children}
   </ProtectedRoute>
 );
