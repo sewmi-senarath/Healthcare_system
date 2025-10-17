@@ -9,6 +9,7 @@ import employeeRoutes from "./routes/employeeRoutes.js";
 import appointmentRoutes from "./routes/appointmentRoutes.js";
 import supportTicketRoutes from "./routes/supportTicketRoutes.js";
 import prescriptionRoutes from "./routes/prescriptionRoutes.js";
+import container from './config/DIContainer.js';
 
 const app = express();
 
@@ -16,6 +17,9 @@ dotenv.config();
 
 //connect to MONGO DB
 connectDB();
+
+// Initialize DI Container
+container.initialize();
 
 // Middleware
 app.use(cors());
