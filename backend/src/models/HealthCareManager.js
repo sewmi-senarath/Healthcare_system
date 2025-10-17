@@ -8,16 +8,16 @@ import employeeBaseSchema from './Employee.js';
  * Inherits from Employee base class
  */
 const healthCareManagerSchema = new mongoose.Schema({
-  // assignedHospital: {
-  //   hospitalId: { type: String, required: true },
-  //   hospitalName: String,
-  //   address: String,
-  //   type: {
-  //     type: String,
-  //     enum: ['general', 'specialty', 'teaching', 'research'],
-  //     default: 'general'
-  //   }
-  // },
+  assignedHospital: {
+    hospitalId: { type: String, required: true },
+    hospitalName: String,
+    address: String,
+    type: {
+      type: String,
+      enum: ['general', 'specialty', 'teaching', 'research'],
+      default: 'general'
+    }
+  },
   managementLevel: {
     type: String,
     enum: ['department', 'division', 'hospital', 'regional'],
