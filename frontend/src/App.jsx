@@ -19,6 +19,7 @@ import PatientProfile from './pages/PatientProfile';
 import MedicalRecords from './pages/MedicalRecords';
 import AppointmentsPage from './pages/AppointmentsPage';
 import PrescriptionsPage from './pages/PrescriptionsPage';
+import NotificationsPage from './pages/NotificationsPage';
 
 // Unauthorized page
 const Unauthorized = () => (
@@ -130,6 +131,22 @@ function App() {
               element={
                 <PatientRoute>
                   <MedicalRecords />
+                </PatientRoute>
+              } 
+            />
+            <Route 
+              path="/patient/prescriptions" 
+              element={
+                <PatientRoute>
+                  <PrescriptionsPage />
+                </PatientRoute>
+              } 
+            />
+            <Route 
+              path="/patient/notifications" 
+              element={
+                <PatientRoute>
+                  <NotificationsPage />
                 </PatientRoute>
               } 
             />

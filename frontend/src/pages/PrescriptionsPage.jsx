@@ -12,7 +12,8 @@ import {
   ExclamationTriangleIcon,
   BeakerIcon,
   UserIcon,
-  CalendarIcon
+  CalendarIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 
 const PrescriptionsPage = () => {
@@ -36,6 +37,8 @@ const PrescriptionsPage = () => {
         result = await prescriptionAPI.getDoctorPrescriptions();
       } else if (userType === 'pharmacist') {
         result = await prescriptionAPI.getPharmacistPrescriptions();
+      } else if (userType === 'patient') {
+        result = await prescriptionAPI.getPatientPrescriptions();
       } else {
         toast.error('Access denied');
         return;
@@ -156,12 +159,16 @@ const PrescriptionsPage = () => {
             <div>
               <h1 className="text-2xl font-bold text-gray-900 flex items-center">
                 <DocumentTextIcon className="w-8 h-8 mr-3 text-blue-600" />
-                {userType === 'doctor' ? 'My Prescriptions' : 'Pharmacy Prescriptions'}
+                {userType === 'doctor' ? 'My Prescriptions' : 
+                 userType === 'pharmacist' ? 'Pharmacy Prescriptions' : 
+                 'My Prescriptions'}
               </h1>
               <p className="text-gray-600 mt-1">
                 {userType === 'doctor' 
                   ? 'Manage patient prescriptions'
-                  : 'Review and process prescriptions'
+                  : userType === 'pharmacist'
+                  ? 'Review and process prescriptions'
+                  : 'View your prescription history and current medications'
                 }
               </p>
             </div>
@@ -187,7 +194,9 @@ const PrescriptionsPage = () => {
             <p className="text-gray-500 mb-6">
               {userType === 'doctor' 
                 ? 'Create your first prescription to get started.'
-                : 'No prescriptions are currently available for processing.'
+                : userType === 'pharmacist'
+                ? 'No prescriptions are currently available for processing.'
+                : 'You don\'t have any prescriptions yet. Visit a doctor to get your first prescription.'
               }
             </p>
             {userType === 'doctor' && (
@@ -393,6 +402,25 @@ const PrescriptionsPage = () => {
                   >
                     Mark as Completed
                   </button>
+                </div>
+              )}
+
+              {/* Information for Patients */}
+              {userType === 'patient' && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-medium text-blue-900 mb-2">Prescription Status</h4>
+                  <p className="text-blue-800 text-sm">
+                    {selectedPrescription.status === 'pending' && 'Your prescription is being reviewed by the pharmacy.'}
+                    {selectedPrescription.status === 'sent_to_pharmacy' && 'Your prescription has been sent to the pharmacy and is ready for pickup.'}
+                    {selectedPrescription.status === 'dispensed' && 'Your medication has been dispensed. Please follow the dosage instructions.'}
+                    {selectedPrescription.status === 'completed' && 'Your prescription has been completed.'}
+                    {selectedPrescription.status === 'cancelled' && 'This prescription has been cancelled.'}
+                  </p>
+                  {selectedPrescription.expiryDate && (
+                    <p className="text-blue-700 text-xs mt-2">
+                      <strong>Expires:</strong> {new Date(selectedPrescription.expiryDate).toLocaleDateString()}
+                    </p>
+                  )}
                 </div>
               )}
             </div>

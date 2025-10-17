@@ -29,7 +29,10 @@ const PatientProfile = () => {
       state: '',
       zipCode: '',
       country: ''
-    }
+    },
+    medicalHistory: [],
+    allergies: [],
+    insuranceDetails: {}
   });
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -37,24 +40,92 @@ const PatientProfile = () => {
 
   // Load profile data on component mount
   useEffect(() => {
-    if (user) {
-      setProfile({
-        name: user.name || '',
-        email: user.email || '',
-        dateOfBirth: user.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split('T')[0] : '',
-        gender: user.gender || '',
-        contactInfo: {
-          phone: user.contactInfo?.phone || ''
-        },
-        address: {
-          street: user.address?.street || '',
-          city: user.address?.city || '',
-          state: user.address?.state || '',
-          zipCode: user.address?.zipCode || '',
-          country: user.address?.country || ''
+    const loadProfile = async () => {
+      try {
+        setLoading(true);
+        
+        // Try to fetch complete profile from backend
+        const result = await patientAPI.getProfile();
+        
+        if (result.success && result.patient) {
+          // Use backend data if available
+          const patientData = result.patient;
+          setProfile({
+            name: patientData.name || '',
+            email: patientData.email || '',
+            dateOfBirth: patientData.dateOfBirth ? new Date(patientData.dateOfBirth).toISOString().split('T')[0] : '',
+            gender: patientData.gender || '',
+            contactInfo: {
+              phone: patientData.contactInfo?.phone || ''
+            },
+            address: {
+              street: patientData.address?.street || '',
+              city: patientData.address?.city || '',
+              state: patientData.address?.state || '',
+              zipCode: patientData.address?.zipCode || '',
+              country: patientData.address?.country || ''
+            },
+            medicalHistory: patientData.medicalHistory || [],
+            allergies: patientData.allergies || [],
+            insuranceDetails: patientData.insuranceDetails || {}
+          });
+        } else {
+          // Fallback to user context data
+          if (user) {
+            setProfile({
+              name: user.name || '',
+              email: user.email || '',
+              dateOfBirth: user.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split('T')[0] : '',
+              gender: user.gender || '',
+              contactInfo: {
+                phone: user.contactInfo?.phone || ''
+              },
+              address: {
+                street: user.address?.street || '',
+                city: user.address?.city || '',
+                state: user.address?.state || '',
+                zipCode: user.address?.zipCode || '',
+                country: user.address?.country || ''
+              },
+              medicalHistory: user.medicalHistory || [],
+              allergies: user.allergies || [],
+              insuranceDetails: user.insuranceDetails || {}
+            });
+          }
         }
-      });
-      setLoading(false);
+      } catch (error) {
+        console.error('Error loading profile:', error);
+        toast.error('Failed to load profile data');
+        
+        // Fallback to user context data
+        if (user) {
+          setProfile({
+            name: user.name || '',
+            email: user.email || '',
+            dateOfBirth: user.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split('T')[0] : '',
+            gender: user.gender || '',
+            contactInfo: {
+              phone: user.contactInfo?.phone || ''
+            },
+            address: {
+              street: user.address?.street || '',
+              city: user.address?.city || '',
+              state: user.address?.state || '',
+              zipCode: user.address?.zipCode || '',
+              country: user.address?.country || ''
+            },
+            medicalHistory: user.medicalHistory || [],
+            allergies: user.allergies || [],
+            insuranceDetails: user.insuranceDetails || {}
+          });
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user) {
+      loadProfile();
     }
   }, [user]);
 
@@ -126,7 +197,10 @@ const PatientProfile = () => {
           state: user.address?.state || '',
           zipCode: user.address?.zipCode || '',
           country: user.address?.country || ''
-        }
+        },
+        medicalHistory: user.medicalHistory || [],
+        allergies: user.allergies || [],
+        insuranceDetails: user.insuranceDetails || {}
       });
     }
     setEditing(false);
@@ -360,6 +434,100 @@ const PatientProfile = () => {
               </div>
             )}
           </form>
+        </div>
+
+        {/* Medical Information Section */}
+        <div className="bg-white rounded-lg shadow-sm border mt-8">
+          <div className="p-6 border-b">
+            <h2 className="text-lg font-semibold text-gray-900">Medical Information</h2>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Medical History */}
+              <div>
+                <h3 className="text-md font-medium text-gray-900 mb-4 border-b pb-2">Medical History</h3>
+                {profile.medicalHistory && profile.medicalHistory.length > 0 ? (
+                  <ul className="space-y-2">
+                    {profile.medicalHistory.map((history, index) => (
+                      <li key={index} className="bg-gray-50 p-3 rounded-lg">
+                        <span className="text-sm text-gray-700">{history}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-500 text-sm italic">No medical history recorded</p>
+                )}
+              </div>
+
+              {/* Allergies */}
+              <div>
+                <h3 className="text-md font-medium text-gray-900 mb-4 border-b pb-2">Allergies</h3>
+                {profile.allergies && profile.allergies.length > 0 ? (
+                  <ul className="space-y-2">
+                    {profile.allergies.map((allergy, index) => (
+                      <li key={index} className="bg-red-50 p-3 rounded-lg border-l-4 border-red-400">
+                        <span className="text-sm text-red-700 font-medium">{allergy}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-500 text-sm italic">No known allergies</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Insurance Information Section */}
+        <div className="bg-white rounded-lg shadow-sm border mt-8">
+          <div className="p-6 border-b">
+            <h2 className="text-lg font-semibold text-gray-900">Insurance Information</h2>
+          </div>
+          <div className="p-6">
+            {profile.insuranceDetails && Object.keys(profile.insuranceDetails).length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {profile.insuranceDetails.provider && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Insurance Provider</label>
+                    <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">{profile.insuranceDetails.provider}</p>
+                  </div>
+                )}
+                {profile.insuranceDetails.policyNumber && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Policy Number</label>
+                    <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">{profile.insuranceDetails.policyNumber}</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-sm italic">No insurance information provided</p>
+            )}
+          </div>
+        </div>
+
+        {/* Patient ID Section */}
+        <div className="bg-white rounded-lg shadow-sm border mt-8">
+          <div className="p-6 border-b">
+            <h2 className="text-lg font-semibold text-gray-900">Patient Information</h2>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Patient ID</label>
+                <p className="text-gray-900 bg-gray-50 p-3 rounded-lg font-mono">{user?.patientId || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Account Status</label>
+                <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    user?.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}>
+                    {user?.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </main>
     </div>

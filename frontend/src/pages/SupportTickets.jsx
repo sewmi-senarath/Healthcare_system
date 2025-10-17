@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { 
   TicketIcon, 
@@ -12,14 +11,14 @@ import {
 import api from '../utils/api';
 
 const SupportTickets = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState({
     issueDescription: '',
-    priority: 'medium'
+    priority: 'medium',
+    category: 'general_inquiry'
   });
 
   // Load tickets on component mount
@@ -44,29 +43,37 @@ const SupportTickets = () => {
 
   const handleCreateTicket = async (e) => {
     e.preventDefault();
+    console.log('Form submitted with data:', formData);
+    
     try {
+      console.log('Sending request to create support ticket...');
       const response = await api.post('/support-tickets', {
-        patientID: user._id,
         issueDescription: formData.issueDescription,
         priority: formData.priority,
-        status: 'open'
+        category: formData.category
       });
+
+      console.log('Response received:', response.data);
 
       if (response.data.success) {
         toast.success('Support ticket created successfully!');
-        setFormData({ issueDescription: '', priority: 'medium' });
+        setFormData({ issueDescription: '', priority: 'medium', category: 'general_inquiry' });
         setShowCreateForm(false);
         
         // Reload tickets
+        console.log('Reloading tickets...');
         const ticketsResponse = await api.get('/support-tickets');
         if (ticketsResponse.data.success) {
           setTickets(ticketsResponse.data.tickets);
+          console.log('Tickets reloaded successfully');
         }
       } else {
+        console.error('API returned error:', response.data.message);
         toast.error(response.data.message || 'Failed to create support ticket');
       }
     } catch (error) {
       console.error('Error creating ticket:', error);
+      console.error('Error details:', error.response?.data);
       toast.error('Failed to create support ticket');
     }
   };
@@ -161,6 +168,26 @@ const SupportTickets = () => {
                   <option value="medium">Medium</option>
                   <option value="high">High</option>
                   <option value="urgent">Urgent</option>
+                </select>
+              </div>
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Category
+                </label>
+                <select
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                >
+                  <option value="general_inquiry">General Inquiry</option>
+                  <option value="technical_issue">Technical Issue</option>
+                  <option value="billing_inquiry">Billing Inquiry</option>
+                  <option value="appointment_issue">Appointment Issue</option>
+                  <option value="medical_record_access">Medical Record Access</option>
+                  <option value="prescription_issue">Prescription Issue</option>
+                  <option value="complaint">Complaint</option>
+                  <option value="feedback">Feedback</option>
+                  <option value="emergency">Emergency</option>
                 </select>
               </div>
               <div className="flex space-x-4">

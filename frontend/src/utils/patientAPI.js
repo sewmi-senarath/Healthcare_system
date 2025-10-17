@@ -54,6 +54,19 @@ const patientAPI = {
   },
 
   /**
+   * Get patient profile
+   */
+  getProfile: async () => {
+    try {
+      const response = await api.get('/patient/profile');
+      return response.data;
+    } catch (error) {
+      console.error('Get profile error:', error);
+      return { success: false, message: error.response?.data?.message || 'Failed to fetch profile' };
+    }
+  },
+
+  /**
    * Update patient profile
    */
   updateProfile: async (profileData) => {

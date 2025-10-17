@@ -80,7 +80,7 @@ const prescriptionAPI = {
   },
 
   /**
-   * Search prescriptions by patient ID
+   * Search prescriptions by patient ID (for staff/doctor use)
    */
   searchPrescriptionsByPatient: async (patientId) => {
     try {
@@ -89,6 +89,19 @@ const prescriptionAPI = {
     } catch (error) {
       console.error('Search prescriptions by patient error:', error);
       return { success: false, message: error.response?.data?.message || 'Failed to search prescriptions' };
+    }
+  },
+
+  /**
+   * Get prescriptions for the authenticated patient
+   */
+  getPatientPrescriptions: async () => {
+    try {
+      const response = await api.get('/prescriptions/patient/my-prescriptions');
+      return response.data;
+    } catch (error) {
+      console.error('Get patient prescriptions error:', error);
+      return { success: false, message: error.response?.data?.message || 'Failed to fetch prescriptions' };
     }
   }
 };
